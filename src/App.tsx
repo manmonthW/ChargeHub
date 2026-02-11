@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
 import { MapView } from '@/sections/MapView';
 import { ChargerDetail } from '@/sections/ChargerDetail';
@@ -8,25 +8,25 @@ import { BottomNav } from '@/sections/BottomNav';
 import { useAuth } from '@/hooks/useAuth';
 import { useChargers } from '@/hooks/useChargers';
 import { useOrders } from '@/hooks/useOrders';
-import { getOwnerChargers } from '@/data/mock';
+import { getOwnerChargers, updateChargersLocation } from '@/data/mock';
 import type { Charger } from '@/types';
 import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('map');
   const [dynamicChargers, setDynamicChargers] = useState<Charger[] | null>(null);
-  
+
   const { user, switchRole, logout } = useAuth();
-  const { 
-    chargers, 
-    filters, 
-    selectedCharger, 
-    isDetailOpen, 
-    viewChargerDetail, 
+  const {
+    chargers,
+    filters,
+    selectedCharger,
+    isDetailOpen,
+    viewChargerDetail,
     closeDetail,
-    updateFilters 
+    updateFilters
   } = useChargers();
-  
+
   const {
     orders,
     createOrder,
@@ -39,14 +39,38 @@ function App() {
   // 获取桩主相关数据
   const ownerChargers = isOwner && user ? getOwnerChargers(user.id) : [];
   const orderStats = getOrderStats();
-  
+
   // 处理充电桩位置更新
   const handleChargersUpdate = useCallback((updatedChargers: Charger[]) => {
     setDynamicChargers(updatedChargers);
   }, []);
-  
+
   // 使用动态更新的充电桩数据或原始数据
   const displayChargers = dynamicChargers || chargers;
+
+  // 页面加载时自动获取位置并更新充电桩
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log('[App] 获取用户位置:', latitude, longitude);
+            // 更新充电桩位置到用户周边
+            const updatedChargers = updateChargersLocation(latitude, longitude);
+            handleChargersUpdate(updatedChargers);
+            toast.success(`已定位到当前位置，发现 ${updatedChargers.length} 个充电桩`);
+          },
+          (error) => {
+            console.warn('[App] 定位失败:', error.message);
+            // 定位失败时使用默认位置，不显示错误提示
+          }
+        );
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [handleChargersUpdate]);
 
   // 处理预约
   const handleBook = async (chargerId: string) => {

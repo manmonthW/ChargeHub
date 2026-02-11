@@ -131,8 +131,9 @@ export const defaultChargers: Charger[] = generateChargersNearLocation(39.9042, 
 export let chargers: Charger[] = [...defaultChargers];
 
 // 更新充电桩位置
-export const updateChargersLocation = (userLat: number, userLng: number) => {
+export const updateChargersLocation = (userLat: number, userLng: number): Charger[] => {
   chargers = generateChargersNearLocation(userLat, userLng);
+  return chargers;
 };
 
 // 模拟社区
