@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高德地图 API 测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .info label {
+            font-weight: bold;
+            color: #1565c0;
+        }
+        .info code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #333;
+        }
+        #map {
+            width: 100%;
+            height: 400px;
+            background: #e0e0e0;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+        .status {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .log {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-line {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .log-time {
+            color: #90a4ae;
+        }
+        .log-error {
+            color: #ef5350;
+        }
+        .log-success {
+            color: #66bb6a;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .marker-info {
+            background: #f0f9ff;
+            border-left: 4px solid #2563eb;
+            padding: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗺️ 高德地图 API 测试工具</h1>
+    
+    <div class="test-container">
+        <h2>配置信息</h2>
+        <div class="info">
+            <label>API Key:</label> <code>b138a576d232b4f6e03ee221f60c0a9a</code><br><br>
+            <label>安全密钥:</label> <code>38e2f3ea143ee52c09d08281801fa6cd</code><br><br>
+            <label>API 版本:</label> <code>2.0</code>
+        </div>
+        
+        <div id="status" class="status loading">
+            ⏳ 等待开始测试...
+        </div>
+        
+        <div style="margin: 15px 0;">
+            <button id="testBtn" onclick="startTest()">开始测试</button>
+            <button id="clearBtn" onclick="clearLog()">清空日志</button>
+        </div>
+        
+        <div id="log" class="log">// 点击"开始测试"按钮开始测试高德地图 API
+
+</div>
+    </div>
+
+    <div class="test-container">
+        <h2>地图显示测试</h2>
+        <div id="map">地图将在这里显示...</div>
+        <div id="mapStatus"></div>
+    </div>
+
+    <script>
+        const AMAP_KEY = 'b138a576d232b4f6e03ee221f60c0a9a';
+        const AMAP_SECURITY_CONFIG = '38e2f3ea143ee52c09d08281801fa6cd';
+        
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : '';
+            const line = `<div class="log-line"><span class="log-time">[${time}]</span> <span class="${className}">${message}</span></div>`;
+            logEl.innerHTML += line;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '// 日志已清空\n\n';
+        }
+        
+        function setStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = 'status ' + type;
+            statusEl.textContent = message;
+        }
+        
+        async function startTest() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            
+            clearLog();
+            setStatus('⏳ 正在测试...', 'loading');
+            
+            try {
+                // 步骤 1: 检查配置
+                log('=== 步骤 1: 检查配置 ===');
+                log(`API Key: ${AMAP_KEY.substring(0, 8)}...${AMAP_KEY.substring(AMAP_KEY.length - 4)}`);
+                log(`安全密钥: ${AMAP_SECURITY_CONFIG.substring(0, 8)}...${AMAP_SECURITY_CONFIG.substring(AMAP_SECURITY_CONFIG.length - 4)}`);
+                log('✓ 配置检查完成', 'success');
+                
+                // 步骤 2: 配置安全密钥
+                log('\n=== 步骤 2: 配置安全密钥 ===');
+                window._AMapSecurityConfig = {
+                    securityJsCode: AMAP_SECURITY_CONFIG
+                };
+                log('window._AMapSecurityConfig 已设置', 'success');
+                
+                // 步骤 3: 加载高德地图脚本
+                log('\n=== 步骤 3: 加载高德地图脚本 ===');
+                const scriptUrl = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}`;
+                log(`脚本 URL: ${scriptUrl}`);
+                
+                await new Promise((resolve, reject) => {
+                    // 移除之前的脚本
+                    const existingScript = document.querySelector('script[data-amap]');
+                    if (existingScript) {
+                        existingScript.remove();
+                        log('移除之前的脚本');
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.async = true;
+                    script.src = scriptUrl;
+                    script.setAttribute('data-amap', 'true');
+                    
+                    script.onload = () => {
+                        log('✓ 脚本加载成功', 'success');
+                        resolve(null);
+                    };
+                    
+                    script.onerror = (e) => {
+                        reject(new Error('脚本加载失败: ' + JSON.stringify(e)));
+                    };
+                    
+                    document.head.appendChild(script);
+                });
+                
+                // 步骤 4: 检查 AMap 对象
+                log('\n=== 步骤 4: 检查 AMap 对象 ===');
+                if (typeof window.AMap === 'undefined') {
+                    throw new Error('AMap 对象未定义');
+                }
+                log(`AMap 版本: ${window.AMap?.version || 'unknown'}`);
+                log('✓ AMap 对象已定义', 'success');
+                
+                // 步骤 5: 创建地图
+                log('\n=== 步骤 5: 创建地图实例 ===');
+                const mapContainer = document.getElementById('map');
+                mapContainer.innerHTML = '';
+                mapContainer.style.background = '#fff';
+                
+                const map = new window.AMap.Map('map', {
+                    center: [116.4074, 39.9042],
+                    zoom: 14,
+                    viewMode: '2D'
+                });
+                
+                log('✓ 地图实例创建成功', 'success');
+                
+                // 步骤 6: 添加标记
+                log('\n=== 步骤 6: 添加测试标记 ===');
+                const marker = new window.AMap.Marker({
+                    position: [116.4074, 39.9042],
+                    title: '测试标记'
+                });
+                map.add(marker);
+                log('✓ 标记添加成功', 'success');
+                
+                // 步骤 7: 获取地图信息
+                log('\n=== 步骤 7: 获取地图信息 ===');
+                const center = map.getCenter();
+                const zoom = map.getZoom();
+                log(`地图中心: [${center.lng}, ${center.lat}]`);
+                log(`缩放级别: ${zoom}`);
+                log('✓ 地图信息获取成功', 'success');
+                
+                // 完成
+                setStatus('✅ 测试成功！高德地图 API 可以正常访问', 'success');
+                log('\n=== ✅ 所有测试通过 ===', 'success');
+                
+                document.getElementById('mapStatus').innerHTML = `
+                    <div class="marker-info">
+                        <strong>地图状态:</strong> 正常显示<br>
+                        <strong>中心坐标:</strong> ${center.lng.toFixed(4)}, ${center.lat.toFixed(4)}<br>
+                        <strong>缩放级别:</strong> ${zoom}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('测试失败:', error);
+                log(`\n❌ 测试失败: ${error.message}`, 'error');
+                setStatus('❌ 测试失败: ' + error.message, 'error');
+                
+                // 显示错误详情
+                const mapContainer = document.getElementById('map');
+                mapContainer.innerHTML = '<div style="color: #ef5350; text-align: center; padding: 20px;">地图加载失败<br>' + error.message + '</div>';
+            } finally {
+                testBtn.disabled = false;
+            }
+        }
+        
+        // 页面加载时自动开始测试
+        window.onload = () => {
+            log('页面已加载，等待开始测试...');
+        };
+    </script>
+</body>
+</html>
