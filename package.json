@@ -1,14 +1,26 @@
 {
-  "name": "my-app",
+  "name": "charge-hub",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "社区共享充电桩平台 - 找桩、充电、评价一站式服务",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
   },
+  "keywords": [
+    "charging-station",
+    "ev-charging",
+    "shared-charging",
+    "react",
+    "typescript",
+    "vite"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
